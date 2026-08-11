@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定义猜歌小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", system-ui;
+        }
+        body {
+            background: #f5f1ed;
+            padding: 20px 15px;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 22px;
+        }
+        .audio-wrap {
+            margin: 20px 0;
+        }
+        audio {
+            width: 100%;
+        }
+        .score-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+        .answer-input {
+            width: 100%;
+            padding: 13px 16px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin: 12px 0;
+        }
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin:15px 0;
+        }
+        button {
+            padding:12px;
+            border:none;
+            border-radius:10px;
+            cursor:pointer;
+            font-size:15px;
+        }
+        .check {background:#4880c7;color:#fff;}
+        .prev {background:#888;color:#fff;}
+        .next {background:#609e72;color:#fff;}
+        .tips {
+            text-align:center;
+            font-size:16px;
+            min-height:24px;
+            margin:10px 0;
+        }
+        .right{color:#23a042}
+        .wrong{color:#d63030}
+        .add-form{
+            margin-top:25px;
+            border-top:1px solid #eee;
+            padding-top:20px;
+        }
+        .add-form input{
+            width:100%;
+            padding:11px;
+            margin:8px 0;
+            border:1px solid #ddd;
+            border-radius:8px;
+        }
+        .add-btn{
+            width:100%;
+            background:#c48c66;
+            color:white;
+        }
+        .song-list{
+            margin-top:20px;
+        }
+        .song-item{
+            display:flex;
+            justify-content:space-between;
+            padding:10px 12px;
+            background:#f8f5f2;
+            border-radius:8px;
+            margin:6px 0;
+            align-items:center;
+        }
+        .del-btn{
+            background:#dd5555;
+            color:white;
+            padding:6px 10px;
+            font-size:13px;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>自定义猜歌游戏</h2>
+    <div class="score-bar">
+        <span>题目：<span id="current">1</span>/<span id="total">0</span></span>
+        <span>得分：<span id="score">0</span></span>
+    </div>
+    <div class="audio-wrap">
+        <audio id="audioPlayer" controls preload="auto">
+    </div>
+    <input class="answer-input" id="ansInput" placeholder="在这里输入歌曲名字作答">
+    <div class="btn-row">
+        <button class="prev" onclick="prevSong()">上一题</button>
+        <button class="check" onclick="judgeAnswer()">确认答案</button>
+        <button class="next" onclick="nextSong()">下一题</button>
+    </div>
+    <div class="tips" id="tipText"></div>
+
+    <div class="add-form">
+        <h3>手动添加新歌曲</h3>
+        <input type="text" id="nameInput" placeholder="歌曲名称">
+        <input type="text" id="singerInput" placeholder="歌手名字">
+        <input type="text" id="srcInput" placeholder="音频mp3直链/本地文件名">
+        <button class="add-btn" onclick="addSong()">添加入库</button>
+    </div>
+
+    <div class="song-list" id="songListBox"></div>
+</div>
+
+<script>
+//读取本地存储，没有就用预设歌单
+let songArr = JSON.parse(localStorage.getItem("guessSongList")) || [
+    {name:"快乐在哪里",singer:"再就业男团",src:"快乐在哪里.mp3"},
+    {name:"活该",singer:"再就业男团",src:"活该.mp3"},
+    {name:"嘉宾",singer:"张远",src:"嘉宾.mp3"},
+    {name:"坏习惯",singer:"苏醒",src:"坏习惯.mp3"},
+    {name:"一个人",singer:"王栎鑫",src:"一个人.mp3"},
+    {name:"晚礼服",singer:"陈楚生",src:"晚礼服.mp3"},
+    {name:"雪落下的声音",singer:"陆虎",src:"雪落下的声音.mp3"},
+    {name:"时间都去哪了",singer:"王铮亮",src:"时间都去哪了.mp3"}
+    {name:"最好的我们",singer:"王栎鑫",src:"最好的我们.mp3"}
+    {name:"risingland",singer:"苏醒",src:"risingland.mp3"}
+    {name:"庙堂之外",singer:"陈楚生",src:"庙堂之外.mp3"}
+    {name:"misspretty",singer:"苏醒",src:"misspretty.mp3"}
+    {name:"可以不是你",singer:"张远",src:"可以不是你.mp3"}
+    {name:"不凡",singer:"王铮亮",src:"不凡.mp3"}
+    {name:"神啊救救我吧",singer:"王栎鑫",src:"神啊救救我吧.mp3"}
+    {name:"拨浪鼓",singer:"陆虎",src:"拨浪鼓.mp3"}
+    {name:"获奖之作",singer:"陈楚生",src:"获奖之作.mp3"}
+    {name:"看着我的眼睛说",singer:"张远",src:"看着我的眼睛说.mp3"}
+    {name:"给从前的自己",singer:"陈楚生陆虎",src:"给从前的自己.mp3"}
+    {name:"凡心",singer:"王铮亮",src:"凡心.mp3"}
+    {name:"半边山半边海",singer:"陈楚生王铮亮",src:"半边山半边海.mp3"}
+];
+let nowIndex = 0;
+let countScore = 0;
+
+const audio = document.getElementById("audioPlayer");
+const currentDom = document.getElementById("current");
+const totalDom = document.getElementById("total");
+const scoreDom = document.getElementById("score");
+const ansDom = document.getElementById("ansInput");
+const tipDom = document.getElementById("tipText");
+const listBox = document.getElementById("songListBox");
+
+//保存数据到本地存储
+function saveData(){
+    localStorage.setItem("guessSongList",JSON.stringify(songArr));
+}
+
+//渲染页面数据
+function renderPage(){
+    if(songArr.length === 0){
+        tipDom.textContent = "暂无曲目，请添加歌曲";
+        totalDom.textContent = 0;
+        return;
+    }
+    const item = songArr[nowIndex];
+    audio.src = item.src;
+    currentDom.textContent = nowIndex+1;
+    totalDom.textContent = songArr.length;
+    ansDom.value = "";
+    tipDom.textContent = "";
+    renderSongList();
+}
+
+//渲染歌单列表
+function renderSongList(){
+    listBox.innerHTML = "";
+    songArr.forEach((item,idx)=>{
+        let div = document.createElement("div");
+        div.className = "song-item";
+        div.innerHTML = `<span>${item.name} - ${item.singer}</span><button class="del-btn" onclick="delSong(${idx})">删除</button>`;
+        listBox.appendChild(div);
+    })
+}
+
+//删除歌曲
+function delSong(index){
+    songArr.splice(index,1);
+    if(nowIndex >= songArr.length) nowIndex = songArr.length-1;
+    saveData();
+    renderPage();
+}
+
+//新增歌曲
+function addSong(){
+    const n = document.getElementById("nameInput").value.trim();
+    const s = document.getElementById("singerInput").value.trim();
+    const r = document.getElementById("srcInput").value.trim();
+    if(!n||!r){
+        alert("歌曲名、音频链接不能为空");
+        return;
+    }
+    songArr.push({name:n,singer:s,src:r});
+    saveData();
+    renderPage();
+    //清空输入框
+    document.getElementById("nameInput").value = "";
+    document.getElementById("singerInput").value = "";
+    document.getElementById("srcInput").value = "";
+    alert("歌曲添加成功");
+}
+
+//判断答案对错
+function judgeAnswer(){
+    if(songArr.length===0)return;
+    const rightName = songArr[nowIndex].name.trim().toLowerCase();
+    const userAns = ansDom.value.trim().toLowerCase();
+    if(userAns === rightName){
+        tipDom.innerHTML = `<span class="right">回答正确！+10分</span>`;
+        countScore +=10;
+        scoreDom.textContent = countScore;
+    }else{
+        tipDom.innerHTML = `<span class="wrong">答错了，正确歌名：${songArr[nowIndex].name}</span>`;
+    }
+}
+
+//上一题
+function prevSong(){
+    audio.pause();
+    nowIndex--;
+    if(nowIndex<0) nowIndex = songArr.length-1;
+    renderPage();
+}
+
+//下一题
+function nextSong(){
+    audio.pause();
+    nowIndex++;
+    if(nowIndex>=songArr.length) nowIndex = 0;
+    renderPage();
+}
+
+//初始化加载
+renderPage();
+</script>
+</body>
+</html>
