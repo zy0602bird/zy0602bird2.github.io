@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定义猜歌小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f7f3f0;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        .form-item {
+            margin-bottom: 14px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .btn {
+            padding: 11px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+        .btn-add {
+            background: #ff7b9c;
+            color: white;
+        }
+        .btn-add:hover {
+            background: #ff6289;
+        }
+        .guess-area {
+            text-align: center;
+        }
+        audio {
+            width: 100%;
+            margin: 12px 0;
+        }
+        .score-text {
+            font-size: 17px;
+            color: #444;
+            margin:10px 0;
+        }
+        .operate-btn {
+            display: flex;
+            gap:10px;
+            justify-content: center;
+            margin-top:15px;
+        }
+        .song-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding:10px 0;
+            border-bottom:1px solid #eee;
+        }
+        .del-btn {
+            background:#e74c3c;
+            color:white;
+        }
+        .tip {
+            margin-top:10px;
+            font-weight:bold;
+            font-size:16px;
+        }
+        .right {
+            color:#27ae60;
+        }
+        .wrong {
+            color:#e74c3c;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 添加歌曲模块 -->
+    <div class="card">
+        <h2>添加自定义歌曲</h2>
+        <div class="form-item">
+            <label>歌曲名称</label>
+            <input id="songName" placeholder="例：平凡之路">
+        </div>
+        <div class="form-item">
+            <label>歌手</label>
+            <input id="singer" placeholder="例：朴树">
+        </div>
+        <div class="form-item">
+            <label>音频播放链接(m3u8/mp3在线地址)</label>
+            <input id="audioUrl" placeholder="粘贴歌曲音频直链">
+        </div>
+        <div class="form-item">
+            <label>歌曲封面图片链接(选填)</label>
+            <input id="imgUrl" placeholder="粘贴图片地址">
+        </div>
+        <button class="btn btn-add" onclick="addSong()">添加至题库</button>
+    </div>
+
+    <!-- 猜歌答题区域 -->
+    <div class="card guess-area">
+        <h2>猜歌答题区</h2>
+        <div class="score-text">当前得分：<span id="score">0</span> 分 | 题目：<span id="currentIndex">0</span>/<span id="totalNum">0</span></div>
+        <audio id="audioPlayer" controls>
+        <div class="form-item">
+            <input id="answerInput" placeholder="输入歌曲名或者歌手进行作答">
+        </div>
+        <button class="btn btn-add" onclick="checkAnswer()">提交答案</button>
+        <div class="tip" id="answerTip"></div>
+        <div class="operate-btn">
+            <button class="btn" onclick="prevSong()">上一题</button>
+            <button class="btn" onclick="nextSong()">下一题</button>
+            <button class="btn" onclick="resetQuiz()">重新开始答题</button>
+        </div>
+    </div>
+
+    <!-- 已添加歌单 -->
+    <div class="card">
+        <h2>我的猜歌题库列表</h2>
+        <div id="songList"></div>
+    </div>
+</div>
+
+<script>
+    //读取本地存储歌单
+    let songList = JSON.parse(localStorage.getItem("guessSongList")) || [];
+    let current = 0;
+    let score = 0;
+
+    //初始化页面
+    initPage();
+
+    //添加歌曲
+    function addSong(){
+        const name = document.getElementById("songName").value.trim();
+        const sing = document.getElementById("singer").value.trim();
+        const audio = document.getElementById("audioUrl").value.trim();
+        const img = document.getElementById("imgUrl").value.trim();
+        if(!name || !audio){
+            alert("歌曲名和音频链接不能为空");
+            return;
+        }
+        songList.push({name,sing,audio,img});
+        saveData();
+        initPage();
+        //清空输入框
+        document.getElementById("songName").value = "";
+        document.getElementById("singer").value = "";
+        document.getElementById("audioUrl").value = "";
+        document.getElementById("imgUrl").value = "";
+        alert("歌曲添加成功");
+    }
+
+    //保存本地存储
+    function saveData(){
+        localStorage.setItem("guessSongList",JSON.stringify(songList));
+    }
+
+    //渲染页面
+    function initPage(){
+        renderList();
+        document.getElementById("totalNum").innerText = songList.length;
+        document.getElementById("score").innerText = score;
+        if(songList.length>0){
+            loadAudio(current);
+            document.getElementById("currentIndex").innerText = current+1;
+        }else{
+            document.getElementById("audioPlayer").src = "";
+            document.getElementById("currentIndex").innerText = 0;
+        }
+    }
+
+    //渲染歌单列表
+    function renderList(){
+        const wrap = document.getElementById("songList");
+        wrap.innerHTML = "";
+        songList.forEach((item,idx)=>{
+            const div = document.createElement("div");
+            div.className = "song-list-item";
+            div.innerHTML = `<div>${item.name} - ${item.sing}</div>
+            <button class="btn del-btn" onclick="delSong(${idx})">删除</button>`;
+            wrap.appendChild(div);
+        })
+    }
+
+    //删除歌曲
+    function delSong(index){
+        songList.splice(index,1);
+        if(current >= songList.length && songList.length>0) current = songList.length-1;
+        saveData();
+        initPage();
+    }
+
+    //加载对应歌曲音频
+    function loadAudio(index){
+        const player = document.getElementById("audioPlayer");
+        player.src = songList[index].audio;
+        player.load();
+        document.getElementById("answerTip").innerHTML = "";
+        document.getElementById("answerInput").value = "";
+    }
+
+    //校验答案
+    function checkAnswer(){
+        if(songList.length===0){
+            alert("题库暂无歌曲，请先添加曲目");
+            return;
+        }
+        const input = document.getElementById("answerInput").value.trim().toLowerCase();
+        const target = songList[current];
+        const rightName = target.name.toLowerCase();
+        const rightSing = target.sing.toLowerCase();
+        const tipDom = document.getElementById("answerTip");
+        if(input === rightName || input === rightSing){
+            score +=10;
+            tipDom.className = "tip right";
+            tipDom.innerText = `回答正确！歌曲：${target.name} ${target.sing}`;
+        }else{
+            tipDom.className = "tip wrong";
+            tipDom.innerText = `答错啦，正确答案：${target.name}《${target.sing}》`;
+        }
+        document.getElementById("score").innerText = score;
+    }
+
+    //上一题
+    function prevSong(){
+        if(songList.length===0)return;
+        current = current-1 <0 ? songList.length-1 : current-1;
+        document.getElementById("currentIndex").innerText = current+1;
+        loadAudio(current);
+    }
+    //下一题
+    function nextSong(){
+        if(songList.length===0)return;
+        current = current+1 >= songList.length ? 0 : current+1;
+        document.getElementById("currentIndex").innerText = current+1;
+        loadAudio(current);
+    }
+    //重置答题分数
+    function resetQuiz(){
+        score=0;
+        current=0;
+        initPage();
+    }
+</script>
+</body>
+</html>
