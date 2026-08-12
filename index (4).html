@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>再就业男团知识问答小游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei",sans-serif;
+        }
+        body {
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 26px;
+        }
+        .score-box {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #edf2ff;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .question-box {
+            font-size: 20px;
+            line-height: 1.6;
+            margin: 25px 0;
+            color: #1a202c;
+            font-weight: 500;
+        }
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .option-item {
+            padding: 14px 18px;
+            border: 1px solid #cbd5e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .option-item:hover {
+            background: #eef4ff;
+            border-color: #60a5fa;
+        }
+        .option-item.right {
+            background: #c6f6d5;
+            border-color: #48bb78;
+        }
+        .option-item.wrong {
+            background: #fed7d7;
+            border-color: #f56565;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 26px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .next-btn {
+            background: #3182ce;
+            color: white;
+        }
+        .reset-btn {
+            background: #718096;
+            color: white;
+        }
+        .tip-text {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 15px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>再就业男团问答闯关</h1>
+    <div class="score-box">
+        <div>当前题目：<span id="currentNum">1</span>/<span id="totalNum">15</span></div>
+        <div>得分：<span id="score">0</span>分</div>
+    </div>
+    <div class="question-box" id="question"></div>
+    <div class="options-list" id="options"></div>
+    <div class="btn-group">
+        <button class="next-btn" id="nextBtn">下一题</button>
+        <button class="reset-btn" id="resetBtn">重新开始</button>
+    </div>
+    <div class="tip-text" id="tip"></div>
+</div>
+
+<script>
+    //题库，可自行增加删减题目
+    const questionList = [
+        {
+            q:"再就业男团最初是哪一档综艺成团?",
+            opt:["快乐男声2007","蘑菇屋《欢迎来到蘑菇屋》","0713再就业男团","我是歌手"],
+            ans:1
+        },
+        {
+            q:"不属于0713再就业男团成员的是？",
+            opt:["陈楚生","苏醒","俞灏明","张杰"],
+            ans:3
+        },
+        {
+            q:"《半边山半边海》是谁和陈楚生合唱的？",
+            opt:["张远","王栎鑫","王铮亮","陆虎"],
+            ans:2
+        },
+        {
+            q:"陆虎代表作《雪落下的声音》出自哪部影视剧？",
+            opt:["延禧攻略","如懿传","甄嬛传","琅琊榜"],
+            ans:0
+        },
+        {
+            q:"07届快男全国总冠军是？",
+            opt:["苏醒","陈楚生","魏晨","张杰"],
+            ans:1
+        },
+        {
+            q:"歌曲《活该》是再就业男团的团歌吗？",
+            opt:["是","不是"],
+            ans:0
+        },
+        {
+            q:"张远早年出圈曲目《棉花糖》属于哪个组合？",
+            opt:["至上励合","快乐男声团体","IME","MIC男团"],
+            ans:0
+        },
+        {
+            q:"综艺《快乐再出发》第一季首播平台是？",
+            opt:["芒果TV","腾讯视频","爱奇艺","优酷"],
+            ans:0
+        },
+        {
+            q:"王铮亮经典曲目《时间都去哪了》最早亮相晚会是？",
+            opt:["春晚","中秋晚会","元宵晚会","跨年晚会"],
+            ans:0
+        },
+        {
+            q:"苏醒擅长的曲风主要是？",
+            opt:["民谣","R&B说唱","古风","摇滚"],
+            ans:1
+        },
+        {
+            q:"《嘉宾》是谁的代表作？",
+            opt:["张远","陈楚生","陆虎","王栎鑫"],
+            ans:0
+        },
+        {
+            q:"王栎鑫当年快男成名曲是？",
+            opt:["光","可不可以忘记","天生一对","降落伞"],
+            ans:1
+        },
+        {
+            q:"《像你这样的朋友》出自快乐再出发主题曲？",
+            opt:["正确","错误"],
+            ans:0
+        },
+        {
+            q:"哪位成员是团队里主要编曲制作人？",
+            opt:["陈楚生","陆虎","王铮亮","苏醒"],
+            ans:1
+        },
+        {
+            q:"再就业男团别称0713代表什么含义？",
+            opt:["出道日期","2007届快男13强","宿舍编号","专辑编号"],
+            ans:1
+        }
+    ]
+
+    let currentIndex = 0
+    let score = 0
+    let isSelect = false //是否已经选择答案
+
+    const qDom = document.getElementById('question')
+    const optDom = document.getElementById('options')
+    const currentNumDom = document.getElementById('currentNum')
+    const totalNumDom = document.getElementById('totalNum')
+    const scoreDom = document.getElementById('score')
+    const nextBtn = document.getElementById('nextBtn')
+    const resetBtn = document.getElementById('resetBtn')
+    const tipDom = document.getElementById('tip')
+
+    totalNumDom.innerText = questionList.length
+
+    //渲染题目
+    function renderQuestion(){
+        isSelect = false
+        tipDom.innerText = ''
+        const item = questionList[currentIndex]
+        currentNumDom.innerText = currentIndex+1
+        qDom.innerText = item.q
+        optDom.innerHTML = ''
+        //渲染选项
+        item.opt.forEach((text,index)=>{
+            const div = document.createElement('div')
+            div.className = 'option-item'
+            div.innerText = `${String.fromCharCode(65+index)}. ${text}`
+            div.onclick = ()=>selectAnswer(index,div,item.ans)
+            optDom.appendChild(div)
+        })
+    }
+
+    //选择答案逻辑
+    function selectAnswer(selectIdx,dom,rightIdx){
+        if(isSelect)return
+        isSelect = true
+        const allOpt = optDom.querySelectorAll('.option-item')
+        //标注正确错误
+        if(selectIdx===rightIdx){
+            dom.classList.add('right')
+            score+=10
+            scoreDom.innerText = score
+            tipDom.innerText = '回答正确！+10分'
+        }else{
+            dom.classList.add('wrong')
+            allOpt[rightIdx].classList.add('right')
+            tipDom.innerText = `回答错误，正确答案：${String.fromCharCode(65+rightIdx)}`
+        }
+    }
+
+    //下一题
+    nextBtn.onclick = ()=>{
+        if(currentIndex<questionList.length-1){
+            currentIndex++
+            renderQuestion()
+        }else{
+            tipDom.innerText = `答题完毕！总得分${score}分，满分${questionList.length*10}分`
+        }
+    }
+
+    //重置游戏
+    resetBtn.onclick = ()=>{
+        currentIndex = 0
+        score = 0
+        scoreDom.innerText = 0
+        renderQuestion()
+    }
+
+    //初始化加载
+    renderQuestion()
+</script>
+</body>
+</html>
